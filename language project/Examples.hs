@@ -1,17 +1,23 @@
 module Example where
     import Syntax
 
-{-
-x : bin = 0110
-print x
+    {-
+    x : bin = 0110
+    print x
+    if x == 0110 then
+        print 6
+    else
+        print 7
+    -}
 
-if x == 0110 then
-    print 6
-else
-    print 7
--}
-
-p1 :: Program
-p1 = [
-    Assign "x" Bin (B [ZBin, OBin, OBin, ZBin])
-]
+    p1 :: Program
+    p1 = [
+        Assign "x" Bin (B [ZBin, OBin, OBin, ZBin]),
+        Print (Ref "x"),
+        IfElse (Equal 
+                    (Ref "x") 
+                    (Const (B [ZBin, OBin, OBin, ZBin]))
+                ) 
+                [Print (Const (D [SxDec]))]
+                [Print (Const (D [SnDec]))]
+        ]
