@@ -1,4 +1,3 @@
-
 module Syntax where
 import Data.List (intercalate)
 
@@ -25,7 +24,15 @@ import Data.List (intercalate)
 
 <rule> -> when <condition> => <output>
 
-<condition> -> <identifier> . <planet> is <element>
+<condition> -> <condition> or <and_cond> | <and_cond>
+
+<and_cond> -> <and_cond> and <not_cond> | <not_cond>
+
+<not_cond> -> not <not_cond> | <atom>
+
+<atom> -> <identifier> . <planet> is <element>
+        | <identifier> . <planet> in <sign>
+        | ( <condition> )
 
 <element> -> fire | earth | air | water
 
@@ -34,6 +41,21 @@ import Data.List (intercalate)
 <identifier> -> <letter> | <letter> <identifier>
 
 <string> -> " <characters> "
+
+<characters> -> <character> <characters> | epsilon
+
+<character> -> <letter> | <digit> | <space> | <symbol>
+
+<space> -> " "
+
+<letter> -> a | b | c | ... | z | A | B | C | ... | Z
+
+<digit> -> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+
+<symbol> -> . | , | ! | ? | ' | - | :
+
+Precedence (weakest to strongest): or, and, not.
+Parentheses can be used to group conditions differently.
 
 -}
 
@@ -77,7 +99,11 @@ data Stmt
 
 -- Horoscope conditions
 data Condition
-    = IsElement Var Planet Element
+    = IsElement Var Planet Element      -- celine.sun is air
+    | InSign Var Planet Sign            -- celine.moon in Cancer
+    | And Condition Condition           -- c1 and c2
+    | Or Condition Condition            -- c1 or c2
+    | Not Condition                     -- not c
     deriving (Eq)
 
 -- SHOW INSTANCES
@@ -108,9 +134,27 @@ instance Show Element where
     show Water = "water"
 
 instance Show Condition where
-    show (IsElement name planet element) =
-        name ++ "." ++ show planet
-        ++ " is " ++ show element
+    show c = showCond 0 c
+
+-- showCond level c prints condition c.
+-- level says what c is sitting inside of:
+--   0 = nothing, 1 = an "or", 2 = an "and", 3 = a "not"
+-- Parentheses are added only when they are needed to keep the meaning.
+showCond :: Int -> Condition -> String
+showCond level (Or c1 c2) =
+    addParens (level > 1) (showCond 1 c1 ++ " or " ++ showCond 2 c2)
+showCond level (And c1 c2) =
+    addParens (level > 2) (showCond 2 c1 ++ " and " ++ showCond 3 c2)
+showCond level (Not c) =
+    addParens (level > 3) ("not " ++ showCond 3 c)
+showCond _ (IsElement name planet element) =
+    name ++ "." ++ show planet ++ " is " ++ show element
+showCond _ (InSign name planet sign) =
+    name ++ "." ++ show planet ++ " in " ++ show sign
+
+addParens :: Bool -> String -> String
+addParens True s = "(" ++ s ++ ")"
+addParens False s = s
 
 instance Show Stmt where
 
